@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Selection Sort — Sorting Visualized</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <main class="page-main algorithm-page">
+    <a href="index.html" class="back-link">← back to home</a>
+    <h1 class="page-title">selection sort</h1>
+    <p class="page-desc">On each pass, find the minimum in the unsorted part and put it in place.</p>
+
+    <div class="viz-panel">
+      <div class="viz-canvas" id="canvas"></div>
+      <div class="controls">
+        <button type="button" class="btn btn-primary" id="btnPlay">▶ Play</button>
+        <button type="button" class="btn" id="btnShuffle">🔀 Shuffle</button>
+        <div class="slider-wrap">
+          <label>Speed</label>
+          <input type="range" id="speed" min="1" max="100" value="50">
+        </div>
+        <div class="slider-wrap">
+          <label>Size</label>
+          <input type="range" id="size" min="10" max="80" value="40">
+        </div>
+        <span class="slider-wrap" id="stats">Compares: 0 · Swaps: 0</span>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Complexity:</strong>
+      <ul>
+        <li>Time: O(n²) always</li>
+        <li>Space: O(1)</li>
+        <li>Stable: no</li>
+      </ul>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnShuffle = document.getElementById('btnShuffle');
+    const speedInput = document.getElementById('speed');
+    const sizeInput = document.getElementById('size');
+    const statsEl = document.getElementById('stats');
+
+    let arr = [];
+    let comparing = new Set();
+    let sorted = new Set();
+    let compareCount = 0;
+    let swapCount = 0;
+    let animationId = null;
+    let isRunning = false;
+
+    function randomArray(n) {
+      const a = [];
+      for (let i = 0; i < n; i++) a.push(Math.floor(Math.random() * 100) + 5);
+      return a;
+    }
+
+    function render() {
+      const max = Math.max(...arr);
+      canvas.innerHTML = '';
+      arr.forEach((val, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        if (sorted.has(i)) bar.classList.add('sorted');
+        else if (comparing.has(i)) bar.classList.add('compare');
+        bar.style.height = `${(val / max) * 100}%`;
+        bar.title = `${val} (index ${i})`;
+        canvas.appendChild(bar);
+      });
+    }
+
+    function updateStats() {
+      statsEl.textContent = `Compares: ${compareCount} · Swaps: ${swapCount}`;
+    }
+
+    function shuffle() {
+      if (isRunning) return;
+      const n = parseInt(sizeInput.value, 10);
+      arr = randomArray(n);
+      comparing.clear();
+      sorted.clear();
+      compareCount = 0;
+      swapCount = 0;
+      updateStats();
+      render();
+    }
+
+    function* selectionSort() {
+      const n = arr.length;
+      for (let i = 0; i < n - 1; i++) {
+        let minIdx = i;
+        for (let j = i + 1; j < n; j++) {
+          comparing.clear();
+          comparing.add(i);
+          comparing.add(j);
+          comparing.add(minIdx);
+          compareCount++;
+          updateStats();
+          render();
+          yield;
+          if (arr[j] < arr[minIdx]) minIdx = j;
+        }
+        if (minIdx !== i) {
+          [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+          swapCount++;
+          updateStats();
+          render();
+          yield;
+        }
+        sorted.add(i);
+        comparing.clear();
+        render();
+        yield;
+      }
+      sorted.add(n - 1);
+      comparing.clear();
+      render();
+    }
+
+    function run() {
+      if (isRunning) return;
+      isRunning = true;
+      btnPlay.textContent = '⏸ Pause';
+      btnPlay.onclick = pause;
+      const gen = selectionSort();
+      const delay = () => 200 - (speedInput.value * 1.8);
+
+      function step() {
+        const { done } = gen.next();
+        if (done) {
+          isRunning = false;
+          btnPlay.textContent = '▶ Play';
+          btnPlay.onclick = run;
+          return;
+        }
+        animationId = setTimeout(step, delay());
+      }
+      step();
+    }
+
+    function pause() {
+      if (animationId) clearTimeout(animationId);
+      animationId = null;
+      isRunning = false;
+      btnPlay.textContent = '▶ Play';
+      btnPlay.onclick = run;
+    }
+
+    btnPlay.onclick = run;
+    btnShuffle.onclick = shuffle;
+    sizeInput.addEventListener('input', () => { if (!isRunning) shuffle(); });
+
+    shuffle();
+  </script>
+</body>
+</html>

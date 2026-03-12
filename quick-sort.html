@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Sort — Sorting Visualized</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <main class="page-main algorithm-page">
+    <a href="index.html" class="back-link">← back to home</a>
+    <h1 class="page-title">quick sort</h1>
+    <p class="page-desc">Pick a pivot, partition into smaller and larger, recurse. O(n log n) on average.</p>
+
+    <div class="viz-panel">
+      <div class="viz-canvas" id="canvas"></div>
+      <div class="controls">
+        <button type="button" class="btn btn-primary" id="btnPlay">▶ Play</button>
+        <button type="button" class="btn" id="btnShuffle">🔀 Shuffle</button>
+        <div class="slider-wrap">
+          <label>Speed</label>
+          <input type="range" id="speed" min="1" max="100" value="50">
+        </div>
+        <div class="slider-wrap">
+          <label>Size</label>
+          <input type="range" id="size" min="10" max="80" value="40">
+        </div>
+        <span class="slider-wrap" id="stats">Compares: 0 · Swaps: 0</span>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Complexity:</strong>
+      <ul>
+        <li>Time: O(n log n) average, O(n²) worst (bad pivot)</li>
+        <li>Space: O(log n) for recursion stack</li>
+        <li>Stable: no</li>
+      </ul>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnShuffle = document.getElementById('btnShuffle');
+    const speedInput = document.getElementById('speed');
+    const sizeInput = document.getElementById('size');
+    const statsEl = document.getElementById('stats');
+
+    let arr = [];
+    let comparing = new Set();
+    let pivotIdx = -1;
+    let sorted = new Set();
+    let compareCount = 0;
+    let swapCount = 0;
+    let animationId = null;
+    let isRunning = false;
+
+    function randomArray(n) {
+      const a = [];
+      for (let i = 0; i < n; i++) a.push(Math.floor(Math.random() * 100) + 5);
+      return a;
+    }
+
+    function render() {
+      const max = Math.max(...arr);
+      canvas.innerHTML = '';
+      arr.forEach((val, i) => {
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        if (sorted.has(i)) bar.classList.add('sorted');
+        else if (i === pivotIdx) bar.classList.add('pivot');
+        else if (comparing.has(i)) bar.classList.add('compare');
+        bar.style.height = `${(val / max) * 100}%`;
+        bar.title = `${val} (index ${i})`;
+        canvas.appendChild(bar);
+      });
+    }
+
+    function updateStats() {
+      statsEl.textContent = `Compares: ${compareCount} · Swaps: ${swapCount}`;
+    }
+
+    function shuffle() {
+      if (isRunning) return;
+      const n = parseInt(sizeInput.value, 10);
+      arr = randomArray(n);
+      comparing.clear();
+      sorted.clear();
+      pivotIdx = -1;
+      compareCount = 0;
+      swapCount = 0;
+      updateStats();
+      render();
+    }
+
+    function* partition(low, high) {
+      const pivot = arr[high];
+      pivotIdx = high;
+      let i = low - 1;
+      for (let j = low; j < high; j++) {
+        comparing.clear();
+        comparing.add(j);
+        comparing.add(high);
+        compareCount++;
+        updateStats();
+        render();
+        yield;
+        if (arr[j] <= pivot) {
+          i++;
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+          if (i !== j) swapCount++;
+          updateStats();
+          render();
+          yield;
+        }
+      }
+      [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+      swapCount++;
+      pivotIdx = -1;
+      comparing.clear();
+      render();
+      yield;
+      return i + 1;
+    }
+
+    function* quickSortGen(low, high) {
+      if (low >= high) {
+        if (low === high) sorted.add(low);
+        return;
+      }
+      const pi = yield* partition(low, high);
+      sorted.add(pi);
+      yield* quickSortGen(low, pi - 1);
+      yield* quickSortGen(pi + 1, high);
+    }
+
+    function* runQuickSort() {
+      yield* quickSortGen(0, arr.length - 1);
+    }
+
+    function run() {
+      if (isRunning) return;
+      isRunning = true;
+      btnPlay.textContent = '⏸ Pause';
+      btnPlay.onclick = pause;
+      const gen = runQuickSort();
+      const delay = () => 200 - (speedInput.value * 1.8);
+
+      function step() {
+        const { done } = gen.next();
+        if (done) {
+          for (let i = 0; i < arr.length; i++) sorted.add(i);
+          render();
+          isRunning = false;
+          btnPlay.textContent = '▶ Play';
+          btnPlay.onclick = run;
+          return;
+        }
+        animationId = setTimeout(step, delay());
+      }
+      step();
+    }
+
+    function pause() {
+      if (animationId) clearTimeout(animationId);
+      animationId = null;
+      isRunning = false;
+      btnPlay.textContent = '▶ Play';
+      btnPlay.onclick = run;
+    }
+
+    btnPlay.onclick = run;
+    btnShuffle.onclick = shuffle;
+    sizeInput.addEventListener('input', () => { if (!isRunning) shuffle(); });
+
+    shuffle();
+  </script>
+</body>
+</html>
