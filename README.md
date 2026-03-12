@@ -30,3 +30,5 @@ Then open http://localhost:8000 (or the port from the command output).
 - `bubble-sort.html`, `insertion-sort.html`, … — pages with visualization, Play/Shuffle buttons, speed and size sliders
 
 Inspired by [DeFi Visualized](https://expectfun.github.io/defi-visualized/).
+
+Dedicated to the memory of [Sir Tony Hoare](https://en.wikipedia.org/wiki/Tony_Hoare) (1934–2026).
