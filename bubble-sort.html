@@ -13,50 +13,74 @@
   <main class="page-main algorithm-page">
     <a href="index.html" class="back-link">← back to home</a>
     <h1 class="page-title">bubble sort</h1>
-    <p class="page-desc">Compare adjacent elements and swap until the array is sorted. Simple but O(n²).</p>
+    <p class="page-desc">Compare adjacent elements and swap until the array is sorted.</p>
 
     <div class="viz-panel">
       <div class="viz-canvas" id="canvas"></div>
       <div class="controls">
-        <button type="button" class="btn btn-primary" id="btnPlay">▶ Play</button>
-        <button type="button" class="btn" id="btnShuffle">🔀 Shuffle</button>
-        <div class="slider-wrap">
-          <label>Speed</label>
-          <input type="range" id="speed" min="1" max="100" value="50">
+        <div class="controls-row controls-row-first">
+          <div class="controls-group-right">
+            <button type="button" class="btn btn-primary" id="btnNext">Next →</button>
+            <button type="button" class="btn" id="btnPlay">▶ Play</button>
+            <div class="slider-wrap">
+              <label>Speed</label>
+              <input type="range" id="speed" min="1" max="100" value="50">
+            </div>
+          </div>
+          <button type="button" class="btn array-apply" id="btnSetArray">Edit array</button>
         </div>
-        <div class="slider-wrap">
-          <label>Size</label>
-          <input type="range" id="size" min="10" max="80" value="40">
+        <div class="controls-row controls-row-array">
+          <div class="array-edit" id="arrayEdit">
+            <label class="array-label" for="arrayInput">Array</label>
+            <input
+              id="arrayInput"
+              class="array-input"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="e.g. 5, 2, 9, 1, 7"
+            />
+          </div>
         </div>
-        <span class="slider-wrap" id="stats">Compares: 0 · Swaps: 0</span>
+      </div>
+      <div class="status-block">
+        <p class="status-line" id="status" aria-live="polite"></p>
       </div>
     </div>
 
-    <div class="info-box">
-      <strong>Complexity:</strong>
-      <ul>
-        <li>Time: O(n²) average and worst case</li>
-        <li>Space: O(1)</li>
-        <li>Stable: yes</li>
-      </ul>
+    <section class="code-section" aria-label="Algorithm code">
+      <div class="code-block">
+        <pre class="code-pre"><code id="tscode">
+<span class="code-line" data-line="1"><span class="code-line-src">for (let i = 0; i &lt; n - 1; i++) {</span><span class="code-line-vals" data-vals-line="1"></span></span>
+<span class="code-line" data-line="2"><span class="code-line-src">  for (let j = 0; j &lt; n - 1 - i; j++) {</span><span class="code-line-vals" data-vals-line="2"></span></span>
+<span class="code-line" data-line="3"><span class="code-line-src">    if (arr[j] &gt; arr[j + 1]) {</span><span class="code-line-vals" data-vals-line="3"></span></span>
+<span class="code-line" data-line="4"><span class="code-line-src">      [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];</span><span class="code-line-vals" data-vals-line="4"></span></span>
+<span class="code-line" data-line="5"><span class="code-line-src">    }  }  }</span><span class="code-line-vals" data-vals-line="5"></span></span></code></pre>
+      </div>
+    </section>
+
+    <div class="code-block info-box-how">
+      <strong>How it works</strong>
+      <p>Two nested loops: the outer loop runs over passes, the inner one over adjacent pairs. On each pass we compare elements pairwise and swap when the left is greater than the right. The largest value in the unsorted part bubbles to the end, so each pass fixes one more element at the tail.</p>
     </div>
   </main>
 
   <script>
     const canvas = document.getElementById('canvas');
     const btnPlay = document.getElementById('btnPlay');
-    const btnShuffle = document.getElementById('btnShuffle');
+    const btnNext = document.getElementById('btnNext');
+    const btnSetArray = document.getElementById('btnSetArray');
+    const arrayEdit = document.getElementById('arrayEdit');
+    const arrayInput = document.getElementById('arrayInput');
     const speedInput = document.getElementById('speed');
-    const sizeInput = document.getElementById('size');
-    const statsEl = document.getElementById('stats');
+    const statusEl = document.getElementById('status');
 
     let arr = [];
     let comparing = new Set();
     let sorted = new Set();
-    let compareCount = 0;
-    let swapCount = 0;
     let animationId = null;
     let isRunning = false;
+    let stepGenerator = null;
 
     function randomArray(n) {
       const a = [];
@@ -68,47 +92,119 @@
       const max = Math.max(...arr);
       canvas.innerHTML = '';
       arr.forEach((val, i) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'bar-wrapper';
+
         const bar = document.createElement('div');
         bar.className = 'bar';
         if (sorted.has(i)) bar.classList.add('sorted');
         else if (comparing.has(i)) bar.classList.add('compare');
         bar.style.height = `${(val / max) * 100}%`;
         bar.title = `${val} (index ${i})`;
-        canvas.appendChild(bar);
+
+        const label = document.createElement('span');
+        label.className = 'bar-label';
+        label.textContent = String(val);
+
+        wrapper.appendChild(bar);
+        wrapper.appendChild(label);
+        canvas.appendChild(wrapper);
       });
     }
 
-    function updateStats() {
-      statsEl.textContent = `Compares: ${compareCount} · Swaps: ${swapCount}`;
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function highlightCode(phase, i, j, a, b) {
+      document.querySelectorAll('.code-line.active').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.code-line-vals').forEach(el => { el.textContent = ''; el.classList.remove('active'); });
+      if (!phase) return;
+      let line;
+      if (phase === 'outer') line = 1;
+      else if (phase === 'inner') line = 2;
+      else if (phase === 'compare') line = 3;
+      else if (phase === 'swap') line = 4;
+      else return;
+      document.querySelectorAll(`.code-line[data-line="${line}"]`).forEach(el => el.classList.add('active'));
+      const setVals = (lineNo, text) => {
+        const el = document.querySelector(`.code-line-vals[data-vals-line="${lineNo}"]`);
+        if (el) { el.textContent = text; el.classList.add('active'); }
+      };
+      if (i != null) setVals(1, `i = ${i}`);
+      if (j != null) setVals(2, `j = ${j}`);
+      if (a != null && b != null) {
+        setVals(3, `arr[j]=${a}, arr[j+1]=${b}`);
+        if (phase === 'swap') setVals(4, `arr[j]=${a}, arr[j+1]=${b}`);
+      }
+    }
+
+    function applyArray(newArr) {
+      arr = newArr.slice();
+      comparing.clear();
+      sorted.clear();
+      stepGenerator = null;
+      setStatus('Press Next to step through the sort.');
+      highlightCode(null);
+      render();
     }
 
     function shuffle() {
       if (isRunning) return;
-      const n = parseInt(sizeInput.value, 10);
-      arr = randomArray(n);
-      comparing.clear();
-      sorted.clear();
-      compareCount = 0;
-      swapCount = 0;
-      updateStats();
+      const n = 20;
+      applyArray(randomArray(n));
+    }
+
+    function parseArrayInput(text) {
+      const raw = text.split(/[,\\s]+/).map(s => s.trim()).filter(Boolean);
+      if (!raw.length) return null;
+      const nums = raw.map(Number);
+      if (nums.some(n => Number.isNaN(n))) return null;
+      if (nums.length < 2 || nums.length > 40) return null;
+      return nums;
+    }
+
+    function stepNext() {
+      if (isRunning) return;
+      if (!stepGenerator) stepGenerator = bubbleSort();
+      const { done } = stepGenerator.next();
+      if (done) {
+        stepGenerator = null;
+        highlightCode(null);
+      }
       render();
     }
 
     function* bubbleSort() {
       const n = arr.length;
       for (let i = 0; i < n - 1; i++) {
+        const iter = i + 1;
+        setStatus(`Iteration ${iter}: starting outer loop\nWe will compare all adjacent pairs for this pass.`);
+        highlightCode('outer', i, null, null, null);
+        render();
+        yield;
         for (let j = 0; j < n - 1 - i; j++) {
+          const comp = j + 1;
+          setStatus(`Iteration ${iter}, comparison ${comp}: moving inner loop\nNow j = ${j}.`);
+          highlightCode('inner', i, j, null, null);
+          render();
+          yield;
+          const a = arr[j];
+          const b = arr[j + 1];
           comparing.clear();
           comparing.add(j);
           comparing.add(j + 1);
-          compareCount++;
-          updateStats();
+          const header = `Iteration ${iter}, comparison ${comp}: comparing ${a} and ${b}`;
+          const outcome = a > b
+            ? 'First is larger, swapping.'
+            : 'First is not larger, order is fine.';
+          setStatus(`${header}\n${outcome}`);
+          highlightCode('compare', i, j, a, b);
           render();
           yield;
           if (arr[j] > arr[j + 1]) {
+            highlightCode('swap', i, j, a, b);
             [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
-            swapCount++;
-            updateStats();
             render();
             yield;
           }
@@ -117,6 +213,8 @@
       }
       sorted.add(0);
       comparing.clear();
+      setStatus('Done: array is sorted.');
+      highlightCode(null);
       render();
     }
 
@@ -125,15 +223,17 @@
       isRunning = true;
       btnPlay.textContent = '⏸ Pause';
       btnPlay.onclick = pause;
-      const gen = bubbleSort();
+      if (!stepGenerator) stepGenerator = bubbleSort();
       const delay = () => 200 - (speedInput.value * 1.8);
 
       function step() {
-        const { value, done } = gen.next();
+        const { value, done } = stepGenerator.next();
         if (done) {
           isRunning = false;
           btnPlay.textContent = '▶ Play';
           btnPlay.onclick = run;
+          stepGenerator = null;
+          highlightCode(null);
           return;
         }
         animationId = setTimeout(step, delay());
@@ -150,9 +250,31 @@
     }
 
     btnPlay.onclick = run;
-    btnShuffle.onclick = shuffle;
-    sizeInput.addEventListener('input', () => { if (!isRunning) shuffle(); });
-
+    btnNext.onclick = stepNext;
+    btnSetArray.onclick = () => {
+      if (isRunning) return;
+      const isVisible = arrayEdit.classList.contains('visible');
+      if (!isVisible) {
+        arrayEdit.classList.add('visible');
+        arrayInput.value = arr.join(', ');
+        setStatus('Edit the numbers (2–40 values, comma or space separated), then press Edit array again.');
+        arrayInput.focus();
+        return;
+      }
+      const parsed = parseArrayInput(arrayInput.value);
+      if (!parsed) {
+        setStatus('Invalid input: use 2–40 comma- or space-separated numbers.');
+        return;
+      }
+      applyArray(parsed);
+      arrayEdit.classList.remove('visible');
+    };
+    arrayInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        btnSetArray.click();
+      }
+    });
     shuffle();
   </script>
 </body>
