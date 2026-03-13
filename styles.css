@@ -546,13 +546,11 @@ body {
 }
 
 .controls-row-first {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
-.controls-row-first .controls-group-right {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
+.controls-row-second {
+  justify-content: space-between;
 }
 
 .controls-row-right {
@@ -694,39 +692,37 @@ body {
   }
 
   .controls {
-    flex-direction: column;
-    align-items: stretch;
     gap: 0.5rem;
   }
 
   .controls-row {
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: stretch;
   }
 
-  .controls-row-first {
+  .controls-row-first > .btn,
+  .controls-row-second > .slider-wrap,
+  .controls-row-second > .array-apply {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+
+  .controls-row-second {
     justify-content: flex-start;
   }
 
-  .controls-row-first .controls-group-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .controls-row-first .btn,
-  .array-apply {
-    width: 100%;
+  .btn {
     justify-content: center;
     text-align: center;
   }
 
   .slider-wrap {
-    width: 100%;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
   }
 
   .slider-wrap input[type="range"] {
-    width: 60%;
+    width: 100%;
   }
 
   .array-edit.visible {
@@ -743,5 +739,18 @@ body {
     font-size: 0.85rem;
     height: auto;
     min-height: 2.4em;
+  }
+
+  /* Stack code explanations under the code line on narrow screens */
+  .algorithm-page .code-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .algorithm-page .code-line-vals {
+    margin-left: 0;
+    width: 100%;
+    white-space: normal;
   }
 }
