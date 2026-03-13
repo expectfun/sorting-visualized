@@ -673,8 +673,75 @@ body {
   .title {
     font-size: 1.75rem;
   }
+
+  .page-main {
+    padding: 1rem 1rem 3rem;
+  }
+
+  .viz-panel {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .viz-canvas {
+    height: 180px;
+    padding: 8px;
+    gap: 2px;
+  }
+
+  .bar-label {
+    font-size: 0.6rem;
+  }
+
   .controls {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .controls-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .controls-row-first {
+    justify-content: flex-start;
+  }
+
+  .controls-row-first .controls-group-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .controls-row-first .btn,
+  .array-apply {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .slider-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .slider-wrap input[type="range"] {
+    width: 60%;
+  }
+
+  .array-edit.visible {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .algorithm-page .code-pre {
+    font-size: 0.7rem;
+    padding-inline: 0.75rem;
+  }
+
+  .algorithm-page .status-block .status-line {
+    font-size: 0.85rem;
+    height: auto;
+    min-height: 2.4em;
   }
 }
